@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Day brand color. -->
+    <color name="primaryColor">#bfb555</color>
+    <color name="primaryDarkColor">#8d8626</color>
+    <color name="secondaryColor">#e2db93</color>
+    <color name="secondaryDarkColor">#afaa64</color>
+    <color name="primaryTextColor">#553501</color>
+    <color name="secondaryTextColor">#ffffff</color>
+    <!-- Night brand color. -->
+    <color name="primaryColorNight">#000000</color>
+    <color name="primaryDarkColorNight">#000000</color>
+    <color name="secondaryColorNight">#96551d</color>
+    <color name="secondaryDarkColorNight">#632b00</color>
+    <color name="primaryTextColorNight">#ffb826</color>
+    <color name="secondaryTextColorNight">#c9c2b9</color>
+</resources>
