@@ -85,6 +85,7 @@ public class GameActivity extends AppCompatActivity {
     }
 
     private void gameListener() {
+
         listenerGame = db.collection("active_games")
                 .document(gameId)
                 .addSnapshotListener(GameActivity.this, (value, error) -> {

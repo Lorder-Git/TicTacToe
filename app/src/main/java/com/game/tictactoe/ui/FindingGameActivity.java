@@ -185,7 +185,7 @@ public class FindingGameActivity extends AppCompatActivity {
         Intent i = new Intent(this, GameActivity.class);
         i.putExtra(Constants.EXTRA_GAME_ID, gameId);
         startActivity(i);
-        gameId = "";
+//        gameId = "";
     }
 
     private void initProgressBar() {
