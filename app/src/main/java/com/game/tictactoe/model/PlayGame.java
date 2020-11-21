@@ -17,8 +17,8 @@ public class PlayGame {
     public PlayGame() {
     }
 
-    public PlayGame(String userOne) {
-        this.playerOneId = userOne;
+    public PlayGame(String playerOneId) {
+        this.playerOneId = playerOneId;
         this.playerTwoId = "";
         this.selectedCells = new ArrayList<>();
         for (int i = 0; i < 9; i++){

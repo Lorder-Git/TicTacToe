@@ -1,7 +1,6 @@
 package com.game.tictactoe.ui;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
@@ -19,18 +18,13 @@ import com.game.tictactoe.R;
 import com.game.tictactoe.app.Constants;
 import com.game.tictactoe.model.PlayGame;
 import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.ListenerRegistration;
-import com.google.firebase.firestore.QuerySnapshot;
 
 public class FindingGameActivity extends AppCompatActivity {
 
@@ -67,7 +61,7 @@ public class FindingGameActivity extends AppCompatActivity {
 
     private void initEvents() {
         btnPLay.setOnClickListener(view -> {
-            changeMenuVisivility(false);
+            changeMenuVisibility(false);
             findFreeGameToPlay();
         });
         btnRanking.setOnClickListener(view -> {
@@ -76,104 +70,79 @@ public class FindingGameActivity extends AppCompatActivity {
     }
 
     private void findFreeGameToPlay() {
-        txtViewLoading.setText("Searching for a free opponent to Play ...");
+        txtViewLoading.setText("Searching for a free Game ...");
         animationView.playAnimation();
 
-        db.collection("active_games")
+        db.collection("games")
                 .whereEqualTo("playerTwoId", "")
                 .get()
-                .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
-                    @Override
-                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                        if (task.getResult().size() == 0){
-                            // There is not a free game, so we create one
-                            createNewGame();
-                        } else {
-                            boolean found = false;
-                            for (DocumentSnapshot docPLay: task.getResult().getDocuments()) {
-                                if (!docPLay.get("playerOneId").equals(uid)) {
-                                    found = true;
-                                    gameId = docPLay.getId();
-                                    playGame = docPLay.toObject(PlayGame.class);
-                                    playGame.setPlayerTwoId(uid);
+                .addOnCompleteListener(task -> {
+                    if (task.getResult().size() == 0){
+                        // There is not a free game, so we create one
+                        createNewGame();
+                    } else {
+                        DocumentSnapshot docPLay = task.getResult().getDocuments().get(0);
+                                gameId = docPLay.getId();
+                                playGame = docPLay.toObject(PlayGame.class);
+                                playGame.setPlayerTwoId(uid);
 
-                                    db.collection("active_games")
-                                            .document(gameId)
-                                            .set(playGame)
-                                            .addOnSuccessListener(new OnSuccessListener<Void>() {
-                                                @Override
-                                                public void onSuccess(Void aVoid) {
+                                db.collection("games")
+                                        .document(gameId)
+                                        .set(playGame)
+                                        .addOnSuccessListener(new OnSuccessListener<Void>() {
+                                            @Override
+                                            public void onSuccess(Void aVoid) {
+                                                txtViewLoading.setText("Found a game for you ...");
+                                                animationView.setRepeatCount(0);
+                                                animationView.setAnimation("checked_animation.json");
+                                                animationView.playAnimation();
 
-                                                    Toast.makeText(FindingGameActivity.this,
-                                                            "Am so sorry, there isn't a second Player, try later!!",
-                                                            Toast.LENGTH_LONG).show();
-                                                    changeMenuVisivility(true);
-
-                                                    txtViewLoading.setText("Found a game for you ...");
-                                                    animationView.setRepeatCount(0);
-                                                    animationView.setAnimation("checked_animation.json");
-                                                    animationView.playAnimation();
-
-                                                    new Handler().postDelayed(() -> startGame(), 1500);
-                                                }
-                                            }).addOnFailureListener(new OnFailureListener() {
-                                        @Override
-                                        public void onFailure(@NonNull Exception e) {
-                                            changeMenuVisivility(true);
+                                                new Handler().postDelayed(() -> startGame(), 3000);
+                                            }
+                                        })
+                                        .addOnFailureListener(e -> {
+                                            changeMenuVisibility(true);
                                             Toast.makeText(FindingGameActivity.this,
-                                                    "There is a problem finding the proper game for you",
+                                                    "There is a problem to join the game ...",
                                                     Toast.LENGTH_SHORT).show();
+                                        });
                                         }
-                                    });
-                                    break;
-                                }
-                                if (!found) createNewGame();
-                            }
-                        }
-                    }
+
                 });
     }
 
     private void createNewGame() {
-        txtViewLoading.setText("Creating game just for you ...");
+        txtViewLoading.setText("Creating a new game just for you ...");
         PlayGame newGame = new PlayGame(uid);
 
-            db.collection("active_games")
+            db.collection("games")
                     .add(newGame)
                     .addOnSuccessListener(documentReference -> {
                         gameId = documentReference.getId();
                         // We wait until the second player start to play
                         waitForPLayer();
                     })
-                    .addOnFailureListener(new OnFailureListener() {
-                        @Override
-                        public void onFailure(@NonNull Exception e) {
-                            changeMenuVisivility(true);
-                            Toast.makeText(FindingGameActivity.this,
-                                    "There is a problem creating the proper game for you",
-                                    Toast.LENGTH_SHORT).show();
-                        }
+                    .addOnFailureListener(e -> {
+                        changeMenuVisibility(true);
+                        Toast.makeText(FindingGameActivity.this,
+                                "Problems creating the game ...",
+                                Toast.LENGTH_SHORT).show();
                     });
     }
 
     private void waitForPLayer() {
         txtViewLoading.setText("Waiting for the opponent...");
-        listenerRegistration = db.collection("active_games")
+        listenerRegistration = db.collection("games")
                 .document(gameId)
-                .addSnapshotListener((value, error) -> {
-                    if (!value.get("playerTwoId").equals("")){
+                .addSnapshotListener((documentSnapshot, error) -> {
+                    if (!documentSnapshot.get("playerTwoId").equals("")){
                         txtViewLoading.setText("Starting the game...");
 
                         animationView.setRepeatCount(0);
                         animationView.setAnimation("checked_animation.json");
                         animationView.playAnimation();
 
-                        new Handler().postDelayed(new Runnable() {
-                            @Override
-                            public void run() {
-                                startGame();
-                            }
-                        }, 1500);
+                        new Handler().postDelayed(() -> startGame(), 3000);
                     }
                 });
     }
@@ -182,24 +151,23 @@ public class FindingGameActivity extends AppCompatActivity {
         if (listenerRegistration != null){
             listenerRegistration.remove();
         }
-        Intent i = new Intent(this, GameActivity.class);
+        Intent i = new Intent(FindingGameActivity.this, GameActivity.class);
         i.putExtra(Constants.EXTRA_GAME_ID, gameId);
         startActivity(i);
-//        gameId = "";
+        gameId = "";
     }
 
     private void initProgressBar() {
         animationView = findViewById(R.id.animation_view);
 
-
         progressBar.setIndeterminate(true);
         txtViewLoading.setText("Loading ...");
 
-        changeMenuVisivility(true);
+        changeMenuVisibility(true);
 
     }
 
-    private void changeMenuVisivility(boolean showMenu) {
+    private void changeMenuVisibility(boolean showMenu) {
         layoutProgressBar.setVisibility(showMenu ? View.GONE : View.VISIBLE);
         layoutGameMenu.setVisibility(showMenu ? View.VISIBLE: View.GONE);
     }
@@ -208,10 +176,10 @@ public class FindingGameActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         if (gameId != null){
-            changeMenuVisivility(false);
+            changeMenuVisibility(false);
             waitForPLayer();
         } else {
-            changeMenuVisivility(true);
+            changeMenuVisibility(true);
         }
     }
 
@@ -220,12 +188,15 @@ public class FindingGameActivity extends AppCompatActivity {
         if (listenerRegistration != null){
             listenerRegistration.remove();
         }
-        if (!gameId.equals("")){
-            db.collection("active_games")
+        if (gameId != ""){
+            db.collection("games")
                     .document(gameId)
                     .delete()
-                    .addOnCompleteListener(task -> {
-                        gameId = "";
+                    .addOnCompleteListener(new OnCompleteListener<Void>() {
+                        @Override
+                        public void onComplete(@NonNull Task<Void> task) {
+                            gameId = "";
+                        }
                     });
         }
         super.onStop();
